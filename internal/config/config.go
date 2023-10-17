@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
@@ -18,6 +19,7 @@ type Config struct {
 	Env        string `yaml:"env" env-default:"local"`
 	HTTPServer `yaml:"http_server" env-required:"true"`
 	Storage    StorageConfig `yaml:"storage" env-required:"true"`
+	Jwt        JWTConfig     `yaml:"jwt" env-required:"true"`
 }
 
 type HTTPServer struct {
@@ -31,6 +33,12 @@ type StorageConfig struct {
 	Username string `yaml:"username" env-required:"true"`
 	Password string `yaml:"password" env-required:"true"`
 	Database string `yaml:"database" env-required:"true"`
+}
+
+type JWTConfig struct {
+	TokenSecret    string        `yaml:"token_secret" env-required:"true"`
+	TokenExpiresIn time.Duration `yaml:"token_expired_in" env-required:"true"`
+	TokenMaxAge    int           `yaml:"token_max_age" env-required:"true"`
 }
 
 func MustLoad() *Config {

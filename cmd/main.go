@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/victor-ivanov-ivt20-2/ai-road-test/internal/config"
 	"github.com/victor-ivanov-ivt20-2/ai-road-test/internal/lib/logger/slogpretty"
 )
@@ -13,8 +16,25 @@ func main() {
 
 	log := setupLogger(cfg.Env)
 
+	db := config.ConnectionDatabase(log, cfg)
+
+	_ = db
+
 	log.Info("starting AI Road test . . .", slog.String("env", cfg.Env))
 	log.Debug("Debug mode is active")
+
+	router := gin.Default()
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%s", cfg.HTTPServer.Port),
+		Handler: router,
+	}
+
+	err := server.ListenAndServe()
+
+	if err != nil {
+		log.Error("Server run error", slog.String("error", err.Error()))
+	}
 }
 
 func setupLogger(env string) *slog.Logger {
