@@ -5,8 +5,13 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/victor-ivanov-ivt20-2/ai-road-test/internal/auth"
+	"github.com/victor-ivanov-ivt20-2/ai-road-test/internal/http/router"
+	"github.com/victor-ivanov-ivt20-2/ai-road-test/internal/user"
+
+	"github.com/go-playground/validator/v10"
 	"github.com/victor-ivanov-ivt20-2/ai-road-test/internal/config"
 	"github.com/victor-ivanov-ivt20-2/ai-road-test/internal/lib/logger/slogpretty"
 )
@@ -17,17 +22,27 @@ func main() {
 	log := setupLogger(cfg.Env)
 
 	db := config.ConnectionDatabase(log, cfg)
+	validate := validator.New()
 
-	_ = db
+	db.Table("users").AutoMigrate(&user.User{})
+
+	userRepository := user.NewUserRepository(db)
+	authService := auth.NewAuthService(cfg, userRepository, validate)
+
+	authController := auth.NewAuthController(authService)
+	userController := user.NewUsersController(userRepository)
+
+	routes := router.NewRouter(cfg, log, userRepository, authController, userController)
 
 	log.Info("starting AI Road test . . .", slog.String("env", cfg.Env))
 	log.Debug("Debug mode is active")
 
-	router := gin.Default()
-
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%s", cfg.HTTPServer.Port),
-		Handler: router,
+		Addr:           fmt.Sprintf(":%s", cfg.HTTPServer.Port),
+		Handler:        routes,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
 
 	err := server.ListenAndServe()
